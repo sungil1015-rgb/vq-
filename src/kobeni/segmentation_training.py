@@ -148,6 +148,11 @@ def _run_segmentation_epoch(
                         scaler.step(optimizer)
                         scaler.update()
                     optimizer.zero_grad(set_to_none=True)
+            batch_size = images.shape[0]
+            sample_count += batch_size
+            total_loss += loss.detach().item() * batch_size
+            for name, value in components.items():
+                component_totals[name] += value.item() * batch_size
             metric_logits = _upsample_logits_for_metrics(output.logits, targets.shape[-2:])
             predictions = metric_logits.argmax(dim=1)
             valid = targets != config.data.segmentation_ignore_index
@@ -171,6 +176,8 @@ def _run_segmentation_epoch(
                 quantized_batches += 1
 
     intersections = confusion.diag().float()
+    if sample_count == 0:
+        raise RuntimeError("Segmentation loader produced no batches; check dataset and batch_size")
     unions = confusion.sum(dim=0).float() + confusion.sum(dim=1).float() - intersections
     valid_classes = unions > 0
     mean_iou = (intersections[valid_classes] / unions[valid_classes]).mean().item()

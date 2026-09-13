@@ -41,7 +41,7 @@ quantizer_force_float32 = true
 # Inner VQ loss = codebook_weight * codebook_loss
 #               + commitment_weight * commitment_loss.
 codebook_weight = 1.0
-commitment_weight = 0.25
+commitment_weight = 0.35
 
 # Final classifier: GAP + alpha * single-query attention -> Linear.
 head = "gap_attention_residual"
@@ -89,7 +89,7 @@ persistent_workers = true
 
 [train]
 epochs = 200
-learning_rate = 0.0003
+learning_rate = 0.0005
 scheduler = "cosine"
 warmup_epochs = 5
 min_learning_rate = 0.000001

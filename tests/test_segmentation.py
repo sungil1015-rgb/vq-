@@ -4,11 +4,13 @@ from pathlib import Path
 import pytest
 import torch
 from PIL import Image
+from torch.utils.data import DataLoader, TensorDataset
 
 from kobeni.ade20k import ADE20KSegmentationDataset
-from kobeni.config import DataConfig, ExperimentConfig, ModelConfig
+from kobeni.config import DataConfig, ExperimentConfig, ModelConfig, TrainConfig
 from kobeni.models import SpatialVocabularySegmentationModel
 from kobeni.segmentation_training import (
+    _run_segmentation_epoch,
     _upsample_logits_for_metrics,
     compute_segmentation_loss,
 )
@@ -82,6 +84,33 @@ def test_full_resolution_metrics_interpolate_logits_before_argmax() -> None:
 
     assert torch.equal(metric_logits, expected)
     assert tuple(metric_logits.argmax(dim=1).shape) == (1, 4, 4)
+
+def test_segmentation_epoch_accumulates_processed_batches() -> None:
+    config = ExperimentConfig(
+        model=_small_segmentation_config("segmentation_direct"),
+        data=DataConfig(dataset="ade20k", batch_size=2, num_workers=0),
+        train=TrainConfig(mixed_precision=False),
+    )
+    loader = DataLoader(
+        TensorDataset(torch.randn(2, 3, 32, 32), torch.randint(0, 150, (2, 32, 32))),
+        batch_size=2,
+    )
+    model = SpatialVocabularySegmentationModel(config.model)
+
+    metrics = _run_segmentation_epoch(
+        model,
+        loader,
+        torch.device("cpu"),
+        config,
+        optimizer=None,
+        mixed_precision=False,
+        amp_dtype=torch.float16,
+        channels_last=False,
+        scaler=None,
+    )
+
+    assert metrics["loss"] > 0
+    assert metrics["valid_pixels"] == 2 * 32 * 32
 
 
 def test_ade20k_dataset_maps_labels_and_pairs_spatial_transforms(tmp_path: Path) -> None:
