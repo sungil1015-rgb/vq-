@@ -1,0 +1,7 @@
+# A: VQ tokens are classified at native 56x56; metrics use bilinear-upsampled logits at 224x224.
+extends = "../ade20k_direct.toml"
+
+[tracking]
+enabled = true
+run_name = "ade20k_decoder_ablation_a_direct"
+save_source_snapshot = true

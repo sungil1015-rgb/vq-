@@ -1,0 +1,5 @@
+# VQ-only lightweight decoder: no encoder skip connections.
+extends = "ade20k_direct.toml"
+
+[model]
+task = "segmentation_decoder"

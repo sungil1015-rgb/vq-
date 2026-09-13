@@ -1,0 +1,16 @@
+# Current strong VQ baseline, named Tiny for model-scale experiments.
+extends = "../vq_baseline.toml"
+
+[model]
+encoder_stem_channels = 64
+encoder_intermediate_channels = 96
+encoder_channels = 384
+encoder_blocks = 2
+latent_dim = 64
+codebook_size = 128
+
+[train]
+output_dir = "outputs/model_scale"
+
+[tracking]
+run_name = "vq_scale_tiny"

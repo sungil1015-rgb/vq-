@@ -1,0 +1,19 @@
+# Formal 200-epoch retraining of Optuna trial 21. Start from scratch: its
+# original 100-epoch checkpoint used a different cosine schedule horizon.
+extends = "../architecture/vq_baseline.toml"
+
+[model]
+commitment_weight = 0.38015360417970284
+
+[train]
+epochs = 200
+learning_rate = 0.0004978727068777652
+weight_decay = 0.00010304976249628974
+lambda_vq = 1.8571798714053267
+output_dir = "outputs/optuna_followup"
+
+[tracking]
+enabled = true
+run_name = "vq_optuna_trial_00021_200"
+run_group = "0913_020830_vq_optuna_followup"
+save_source_snapshot = true

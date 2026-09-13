@@ -1,0 +1,44 @@
+[model]
+variant = "vq"
+num_classes = 100
+encoder_channels = 384
+encoder_blocks = 2
+latent_dim = 64
+codebook_size = 128
+commitment_weight = 0.25
+reconstruction = false
+use_bottleneck = true
+normalization = "batch"
+downsampling = "max_pool"
+activation = "relu"
+remove_middle_conv = false
+pool_after_first_conv = false
+
+[data]
+dataset = "cifar100"
+root = "data"
+batch_size = 128
+num_workers = 4
+random_crop = true
+random_horizontal_flip = true
+cutmix_alpha = 0.0
+cutmix_probability = 1.0
+
+[train]
+epochs = 100
+learning_rate = 0.0003
+scheduler = "cosine"
+warmup_epochs = 5
+min_learning_rate = 0.000001
+weight_decay = 0.0001
+lambda_vq = 1.0
+lambda_rec = 0.0
+gradient_accumulation_steps = 1
+seed = 0
+device = "auto"
+output_dir = "outputs/architecture"
+
+[tracking]
+enabled = true
+run_name = "vq_bn_maxpool_w384_crop_flip"
+save_source_snapshot = true

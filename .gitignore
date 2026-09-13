@@ -1,0 +1,32 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Experiment artifacts and datasets
+data/
+outputs/
+*.pt
+
+# Local test, lint, coverage, and profiler artifacts
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pytype/
+.coverage
+coverage.xml
+htmlcov/
+
+# Locally generated logs, temporary files, and Optuna database backends
+*.log
+*.tmp
+*.journal
+*.db
+*.sqlite
+*.sqlite3

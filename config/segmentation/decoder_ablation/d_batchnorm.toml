@@ -1,0 +1,12 @@
+# D: B plus BatchNorm after each 3x3 Conv, without ReLU.
+extends = "../ade20k_direct.toml"
+
+[model]
+task = "segmentation_decoder"
+segmentation_decoder_normalization = "batch"
+segmentation_decoder_activation = "none"
+
+[tracking]
+enabled = true
+run_name = "ade20k_decoder_ablation_d_batchnorm"
+save_source_snapshot = true

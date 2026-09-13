@@ -1,0 +1,17 @@
+# Conservative 200-epoch confirmation: upper-conservative LR / moderately stronger VQ loss.
+extends = "../../architecture/vq_baseline.toml"
+
+[model]
+commitment_weight = 0.35
+
+[train]
+epochs = 200
+learning_rate = 0.0006
+weight_decay = 0.0001
+lambda_vq = 1.4
+output_dir = "outputs/optuna_followup"
+
+[tracking]
+enabled = true
+run_name = "vq_conservative_lr600_lambda140_200"
+save_source_snapshot = true

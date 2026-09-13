@@ -1,0 +1,131 @@
+# Final CIFAR-100 VQ classification baseline.
+# This file intentionally spells out every experiment-relevant value instead of
+# relying on Python defaults.
+
+[model]
+task = "classification"
+variant = "vq"
+num_classes = 100
+input_channels = 3
+
+# Encoder: 3 -> 64 -> 96 -> 384, two 384-channel residual blocks.
+encoder_stem_channels = 64
+encoder_intermediate_channels = 96
+encoder_channels = 384
+encoder_blocks = 2
+encoder_kernel_size = 3
+residual_kernel_size = 3
+projection_kernel_size = 1
+convolution_bias = false
+normalization = "batch"
+normalization_epsilon = 0.00001
+batch_norm_momentum = 0.1
+group_norm_groups = 8
+downsampling = "max_pool"
+downsampling_stride = 2
+pool_kernel_size = 2
+pool_stride = 2
+activation = "relu"
+remove_middle_conv = false
+pool_after_first_conv = false
+
+# 384 -> 64 spatial bottleneck and K=128 vector quantizer.
+use_bottleneck = true
+bottleneck_kernel_size = 1
+bottleneck_bias = true
+latent_dim = 64
+codebook_size = 128
+codebook_init_scale = 1.0
+quantizer_force_float32 = true
+
+# Inner VQ loss = codebook_weight * codebook_loss
+#               + commitment_weight * commitment_loss.
+codebook_weight = 1.0
+commitment_weight = 0.25
+
+# Final classifier: GAP + alpha * single-query attention -> Linear.
+head = "gap_attention_residual"
+classifier_bias = true
+attention_query_init_std = 0.125
+attention_temperature = 8.0
+attention_residual_alpha_init = 0.0
+
+# Explicit defaults used only when a different head is selected later.
+head_spatial_pool_size = 2
+head_dwconv_kernel_size = 3
+head_depthwise_bias = false
+weighted_pool_hidden_dim = 16
+attention_query_count = 4
+self_attention_heads = 4
+self_attention_mlp_ratio = 2.0
+
+# Defaults used only by ADE20K segmentation presets.
+segmentation_decoder_hidden_channels = 128
+segmentation_decoder_output_channels = 64
+segmentation_upsample_mode = "bilinear"
+segmentation_decoder_normalization = "batch"
+segmentation_decoder_activation = "relu"
+reconstruction = false
+
+[data]
+dataset = "cifar100"
+segmentation_ignore_index = 255
+root = "data"
+batch_size = 128
+num_workers = 4
+image_size = 32
+# Optional explicit runtime shape. Change this to [H, W] for non-square inputs.
+image_shape = [32, 32]
+normalization_mean = [0.5071, 0.4867, 0.4408]
+normalization_std = [0.2675, 0.2565, 0.2761]
+random_crop = true
+random_crop_padding = 4
+random_horizontal_flip = true
+horizontal_flip_probability = 0.5
+cutmix_alpha = 1.0
+cutmix_probability = 0.5
+pin_memory = true
+persistent_workers = true
+
+[train]
+epochs = 200
+learning_rate = 0.0003
+scheduler = "cosine"
+warmup_epochs = 5
+min_learning_rate = 0.000001
+
+optimizer = "adamw"
+weight_decay = 0.0001
+adamw_beta1 = 0.9
+adamw_beta2 = 0.999
+adamw_epsilon = 0.00000001
+adamw_amsgrad = false
+
+# Total loss = lambda_cls * cross_entropy
+#            + lambda_vq  * VQ loss
+#            + lambda_rec * reconstruction loss.
+classification_loss = "cross_entropy"
+reconstruction_loss = "l1"
+lambda_cls = 1.0
+lambda_vq = 1.0
+lambda_rec = 0.0
+label_smoothing = 0.0
+
+gradient_accumulation_steps = 1
+mixed_precision = true
+amp_dtype = "float16"
+grad_scaler_init_scale = 65536.0
+grad_scaler_growth_factor = 2.0
+grad_scaler_backoff_factor = 0.5
+grad_scaler_growth_interval = 2000
+tf32 = true
+channels_last = true
+top_k = 5
+seed = 0
+device = "auto"
+output_dir = "outputs/architecture"
+
+[tracking]
+enabled = true
+run_name = "vq_strong_gap_attention_residual"
+save_source_snapshot = true

@@ -1,0 +1,16 @@
+# XLarge: the Tiny recipe with a wider and deeper encoder.
+extends = "../vq_baseline.toml"
+
+[model]
+encoder_stem_channels = 160
+encoder_intermediate_channels = 320
+encoder_channels = 1280
+encoder_blocks = 8
+latent_dim = 128
+codebook_size = 512
+
+[train]
+output_dir = "outputs/model_scale"
+
+[tracking]
+run_name = "vq_scale_xlarge"

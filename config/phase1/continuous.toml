@@ -1,0 +1,28 @@
+[model]
+variant = "continuous"
+num_classes = 10
+encoder_channels = 128
+encoder_blocks = 2
+latent_dim = 64
+codebook_size = 128
+commitment_weight = 0.25
+reconstruction = false
+
+[data]
+dataset = "cifar10"
+root = "data"
+batch_size = 128
+num_workers = 4
+
+[train]
+epochs = 200
+learning_rate = 0.0003
+scheduler = "cosine"
+warmup_epochs = 5
+min_learning_rate = 0.000001
+weight_decay = 0.0001
+lambda_vq = 0.0
+lambda_rec = 0.0
+seed = 0
+device = "auto"
+output_dir = "outputs/formal/phase1/continuous/seed_0"

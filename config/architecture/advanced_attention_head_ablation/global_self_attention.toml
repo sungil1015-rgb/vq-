@@ -1,0 +1,48 @@
+[model]
+variant = "vq"
+num_classes = 100
+encoder_channels = 384
+encoder_blocks = 2
+latent_dim = 64
+codebook_size = 128
+commitment_weight = 0.25
+reconstruction = false
+use_bottleneck = true
+normalization = "batch"
+downsampling = "max_pool"
+activation = "relu"
+remove_middle_conv = false
+pool_after_first_conv = false
+head = "global_self_attention"
+
+[data]
+dataset = "cifar100"
+root = "data"
+batch_size = 128
+num_workers = 4
+random_crop = true
+random_horizontal_flip = true
+cutmix_alpha = 1.0
+cutmix_probability = 0.5
+
+[train]
+epochs = 200
+learning_rate = 0.0003
+scheduler = "cosine"
+warmup_epochs = 5
+min_learning_rate = 0.000001
+weight_decay = 0.0001
+lambda_vq = 1.0
+lambda_rec = 0.0
+gradient_accumulation_steps = 1
+mixed_precision = true
+tf32 = true
+channels_last = true
+seed = 0
+device = "auto"
+output_dir = "outputs/architecture"
+
+[tracking]
+enabled = true
+run_name = "vq_advanced_attention_global_self_attention"
+save_source_snapshot = true

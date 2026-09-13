@@ -1,0 +1,55 @@
+[study]
+name = "vq_gap_attention_residual_hpo"
+baseline_config = "config/architecture/vq_baseline.toml"
+direction = "maximize"
+metric = "eval.accuracy"
+output_root = "outputs/optuna"
+
+trial_epochs = 100
+trials_per_worker = 8
+trial_seed = 0
+
+
+[sampler]
+type = "tpe"
+seed = 2026
+startup_trials = 8
+
+
+[pruner]
+type = "median"
+startup_trials = 8
+warmup_epochs = 35
+interval_epochs = 5
+
+
+[parameters.learning_rate]
+target = "train.learning_rate"
+type = "float"
+low = 0.0001
+high = 0.0008
+log = true
+
+
+[parameters.weight_decay]
+target = "train.weight_decay"
+type = "float"
+low = 0.000001
+high = 0.0005
+log = true
+
+
+[parameters.commitment_weight]
+target = "model.commitment_weight"
+type = "float"
+low = 0.1
+high = 0.75
+log = true
+
+
+[parameters.lambda_vq]
+target = "train.lambda_vq"
+type = "float"
+low = 0.25
+high = 2.0
+log = true

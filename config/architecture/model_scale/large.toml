@@ -1,0 +1,16 @@
+# Large: the Tiny recipe with a wider and deeper encoder.
+extends = "../vq_baseline.toml"
+
+[model]
+encoder_stem_channels = 128
+encoder_intermediate_channels = 256
+encoder_channels = 1024
+encoder_blocks = 6
+latent_dim = 128
+codebook_size = 256
+
+[train]
+output_dir = "outputs/model_scale"
+
+[tracking]
+run_name = "vq_scale_large"

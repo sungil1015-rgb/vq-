@@ -1,0 +1,52 @@
+# Direct spatial probe: loss at native 56x56; metrics use bilinear-upsampled logits at 224x224.
+extends = "../architecture/model_scale/tiny.toml"
+
+[model]
+task = "segmentation_direct"
+variant = "vq"
+num_classes = 150
+segmentation_decoder_hidden_channels = 128
+segmentation_decoder_output_channels = 64
+segmentation_upsample_mode = "bilinear"
+reconstruction = false
+
+[data]
+dataset = "ade20k"
+root = "data/ade20k"
+batch_size = 16
+num_workers = 8
+image_size = 224
+image_shape = [224, 224]
+normalization_mean = [0.485, 0.456, 0.406]
+normalization_std = [0.229, 0.224, 0.225]
+random_crop = false
+random_horizontal_flip = true
+horizontal_flip_probability = 0.5
+cutmix_alpha = 0.0
+cutmix_probability = 0.0
+segmentation_ignore_index = 255
+pin_memory = true
+persistent_workers = true
+
+[train]
+epochs = 100
+learning_rate = 0.0003
+warmup_epochs = 5
+min_learning_rate = 0.000001
+lambda_cls = 1.0
+lambda_vq = 1.0
+lambda_rec = 0.0
+label_smoothing = 0.0
+gradient_accumulation_steps = 1
+mixed_precision = true
+amp_dtype = "float16"
+tf32 = true
+channels_last = true
+seed = 0
+device = "auto"
+output_dir = "outputs/segmentation"
+
+[tracking]
+enabled = true
+run_name = "ade20k_vq_direct_tiny"
+save_source_snapshot = true
