@@ -61,6 +61,92 @@ Total loss = lambda_cls × classification_or_segmentation_loss
 alpha는 0으로 초기화되어 학습 시작 시에는 정확히 GAP처럼 동작하고, 이후 필요한 attention
 성분만 학습합니다.
 
+## 지금까지의 주요 실험 결과
+
+아래 숫자는 각 실행의 최고 eval accuracy입니다. 특별히 seed 수를 적지 않은 architecture
+ablation은 seed 0 한 번의 결과이므로 최종 통계가 아니라 다음 실험을 고르는 근거로 해석해야
+합니다. 서로 다른 단계에서 source와 학습 recipe가 바뀌었기 때문에, 가장 신뢰할 비교는 같은
+run group 안의 결과입니다.
+
+### 아키텍처가 결정된 과정
+
+| 실험 | 결과 | 현재 판단 |
+| --- | --- | --- |
+| Residual depth, CIFAR-10 3 seeds | block 2: 87.34±0.29%, block 4: 87.53±0.37% | block 4 이득은 0.19%p뿐이고 parameter가 약 76% 증가하여 block 2 유지 |
+| BN pooling | Max 60.56%, Avg 59.90%, Avg→Max 59.84%, Max→Avg 59.73% | MaxPool 채택 |
+| Encoder 변화 | W=128 control 60.56%, middle Conv 제거 56.97%, pool 추가 57.03%, SiLU 60.37%, W=256 65.26% | 구조 축소·추가 pooling보다 width 확대가 효과적 |
+| Width/latent | W256-D64 65.19%, D128 64.08%, D256 64.99%, W384-D64 68.27% | latent D보다 encoder width가 중요하여 W=384, D=64 채택 |
+| Codebook K | K128 60.56%, K256 60.50%, K512 60.25%, K1024 60.44%, K2048 60.34% | 큰 K의 정확도 이득이 없어 K=128 유지 |
+| CutMix 확률 | p=0: 68.55%, p=.25: 69.35%, p=.50: 70.03%, p=.75: 69.87% | Crop+Flip+CutMix p=.5 채택 |
+| 200-epoch pooling head | GAP 71.04%, DWConv 71.16%, weighted 69.54%, single-query 71.16% | 단순 weighted pooling은 code 사용 편향과 성능 저하 |
+| Advanced head | GAP-attention residual 71.31%, DWConv-attention 71.17%, 4-query 70.65%, self-attention 69.28% | 가장 단순하고 안정적인 GAP-attention residual 채택 |
+
+전체적으로 성능을 크게 움직인 것은 **encoder channel 확대와 augmentation**이었습니다.
+W=128→256은 약 +4.7%p, W=256→384는 약 +3.0%p였고, Crop+Flip에 CutMix p=.5를 더하면
+약 +1.5%p였습니다. 반면 latent dimension과 codebook 크기를 늘리는 것은 parameter와
+quantization 비용만 키우고 정확도는 거의 개선하지 못했습니다.
+
+최종 head는 GAP에 parameter 65개만 더하는 residual attention입니다. 같은 200-epoch 조건에서
+GAP보다 +0.27%p였지만 한 seed 차이이므로, 최종 결론에는 여러 seed 재검증이 필요합니다.
+복잡한 global self-attention은 오히려 -1.76%p였고 이 작은 8×8 VQ grid에서는 구조 복잡도가
+곧바로 성능으로 이어지지 않았습니다.
+
+### VQ와 continuous 비교
+
+continuous는 VQ와 같은 encoder 및 bottleneck을 사용하고 quantization만 제거한
+continuous_bottleneck입니다. 표의 ±는 seed 사이 sample standard deviation입니다.
+
+| Dataset / recipe | Seeds | Continuous best | VQ best | VQ − Continuous |
+| --- | ---: | ---: | ---: | ---: |
+| CIFAR-10 초기 block-2, 200 epoch | 4 | 88.97±0.20% | 88.41±0.08% | -0.56%p |
+| CIFAR-100 초기 block-2, 200 epoch | 4 | 58.73±0.09% | 53.30±0.60% | -5.43%p |
+| CIFAR-100 strong recipe, 200 epoch | 2 | 73.01±0.60% | 71.35±0.29% | -1.66%p |
+
+현재 결과에서는 VQ가 continuous보다 높다고 결론낼 수 없습니다. 다만 strong recipe가
+CIFAR-100의 quantization penalty를 5.43%p에서 1.66%p로 줄였습니다. 이 프로젝트의 목표는
+accuracy만 이기는 것이 아니라 discrete vocabulary의 해석 가능성, code intervention과 spatial
+localization까지 얻는 것이므로 이후 평가는 정확도와 representation 품질을 함께 봅니다.
+
+### 하이퍼파라미터 탐색
+
+100-epoch Optuna에서는 trial 21이 71.32%로 가장 높았지만, 같은 값을 200 epoch로 처음부터
+재학습했을 때는 71.00%였습니다. 짧은 schedule에서 가장 좋은 설정이 긴 schedule에서도
+최적이라는 보장이 없다는 결과입니다.
+
+| 200-epoch 후보 | Best accuracy |
+| --- | ---: |
+| LR 5e-4, beta .35, lambda_vq 1.0 | **71.63%** |
+| LR 6e-4, beta .35, lambda_vq 1.0 | 71.36% |
+| LR 6e-4, beta .35, lambda_vq 1.4 | 71.40% |
+| LR 5e-4, beta .35, lambda_vq 1.4 | 70.86% |
+| Optuna trial 21, lambda_vq 1.857 | 71.00% |
+
+따라서 현재 baseline은 LR=5e-4, weight decay=1e-4, beta=.35, lambda_vq=1.0입니다. 강한 VQ
+가중치는 100-epoch 탐색에서는 좋아 보여도 200 epoch에서 code 사용을 편향시키고 정확도를
+낮출 수 있어 보수적인 값을 선택했습니다.
+
+### 현재 모델의 위치
+
+현재 baseline은 약 5.74M parameter입니다. 초기 128-channel 모델의 약 0.78M에서 커졌지만,
+성능 향상의 대부분이 확인된 width 확대에서 왔습니다.
+
+~~~text
+초기 후보
+W=128, D=64, K=128, GN/strided downsampling, GAP
+  ↓ BatchNorm과 MaxPool 선택
+W=128, D=64, K=128
+  ↓ encoder width가 가장 큰 개선
+W=256 → W=384
+  ↓ Crop + Flip + CutMix(p=.5)
+strong training recipe
+  ↓ GAP에 안정적인 attention residual 추가
+현재 baseline: W=384, blocks=2, D=64, K=128
+~~~
+
+ADE20K decoder 결과는 아직 epoch 1~2뿐이라 모델 선택 근거로 사용하지 않습니다. 현재 관측된
+mIoU는 A direct 1.01%, B linear 0.76%, C ReLU 0.85%, D BatchNorm 1.75% 수준이지만, 초기
+VQ loss가 segmentation cross-entropy보다 훨씬 커서 ADE 전용 loss scale을 먼저 검증해야 합니다.
+
 ## 설치와 빠른 확인
 
 Python 3.12와 uv를 사용합니다.
