@@ -33,7 +33,9 @@ class ADE20KSegmentationDataset(Dataset[tuple[Tensor, Tensor]]):
             raise FileNotFoundError(f"Missing ADE20K annotations, first missing mask: {missing[0]}")
         self.image_shape = resolve_image_shape(config)
         self.train = train
-        self.flip_probability = config.horizontal_flip_probability
+        self.flip_probability = (
+            config.horizontal_flip_probability if config.random_horizontal_flip else 0.0
+        )
         self.mean = config.normalization_mean or [0.485, 0.456, 0.406]
         self.std = config.normalization_std or [0.229, 0.224, 0.225]
         self.ignore_index = config.segmentation_ignore_index

@@ -151,7 +151,6 @@ class FourQueryAttentionMeanClassifier(nn.Module):
         classifier_bias: bool = True,
     ) -> None:
         super().__init__()
-        self.query_count = query_count
         self.queries = nn.Parameter(torch.empty(query_count, input_dim))
         nn.init.normal_(self.queries, std=query_init_std)
         self.temperature = temperature
@@ -159,7 +158,7 @@ class FourQueryAttentionMeanClassifier(nn.Module):
 
     def forward(self, inputs: Tensor) -> Tensor:
         tokens = inputs.flatten(2)
-        queries = self.queries.view(1, self.query_count, -1, 1)
+        queries = self.queries[None, :, :, None]
         token_scores = (tokens.unsqueeze(1) * queries).sum(dim=2)
         token_weights = (token_scores / self.temperature).softmax(dim=2)
         query_features = (tokens.unsqueeze(1) * token_weights.unsqueeze(2)).sum(dim=3)
@@ -233,9 +232,7 @@ def build_classifier(config: ModelConfig, input_dim: int) -> nn.Module:
     if config.head == "gap":
         return LinearClassifier(*common, bias=config.classifier_bias)
     if config.head == "pool_2x2":
-        return Pool2x2Classifier(
-            *common, config.head_spatial_pool_size, config.classifier_bias
-        )
+        return Pool2x2Classifier(*common, config.head_spatial_pool_size, config.classifier_bias)
     if config.head == "gap_pool_2x2_concat":
         return GlobalSpatialConcatClassifier(
             *common, config.head_spatial_pool_size, config.classifier_bias

@@ -41,11 +41,9 @@ def _check(config: ExperimentConfig) -> None:
 
         loss, components, supervision = compute_segmentation_loss(
             output,
-            images,
             targets,
             config.train.lambda_cls,
             config.train.lambda_vq,
-            config.train.lambda_rec,
             config.train.label_smoothing,
             config.data.segmentation_ignore_index,
         )

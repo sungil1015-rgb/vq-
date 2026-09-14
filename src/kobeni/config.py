@@ -342,6 +342,10 @@ class ExperimentConfig:
             value <= 0 for value in self.data.normalization_std
         ):
             raise ValueError("normalization_std values must be positive")
+        if self.model.task != "classification" and (
+            self.model.reconstruction or self.train.lambda_rec != 0
+        ):
+            raise ValueError("Segmentation does not support reconstruction")
         if self.train.lambda_rec > 0 and not self.model.reconstruction:
             raise ValueError("lambda_rec > 0 requires model.reconstruction = true")
         if min(self.train.lambda_cls, self.train.lambda_vq, self.train.lambda_rec) < 0:

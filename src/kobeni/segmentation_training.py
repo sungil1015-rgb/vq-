@@ -39,7 +39,6 @@ def _resize_targets(targets: Tensor, spatial_shape: tuple[int, int]) -> Tensor:
     )
 
 
-
 def _upsample_logits_for_metrics(logits: Tensor, target_shape: tuple[int, int]) -> Tensor:
     """Evaluate every segmentation model against the original-resolution mask."""
     if logits.shape[-2:] == target_shape:
@@ -49,11 +48,9 @@ def _upsample_logits_for_metrics(logits: Tensor, target_shape: tuple[int, int]) 
 
 def compute_segmentation_loss(
     output: ModelOutput,
-    images: Tensor,
     targets: Tensor,
     lambda_cls: float,
     lambda_vq: float,
-    lambda_rec: float,
     label_smoothing: float,
     ignore_index: int,
 ) -> tuple[Tensor, dict[str, Tensor], Tensor]:
@@ -64,8 +61,8 @@ def compute_segmentation_loss(
         ignore_index=ignore_index,
         label_smoothing=label_smoothing,
     )
-    reconstruction = images.new_zeros(())
-    total = lambda_cls * segmentation + lambda_vq * output.vq_loss + lambda_rec * reconstruction
+    reconstruction = output.logits.new_zeros(())
+    total = lambda_cls * segmentation + lambda_vq * output.vq_loss
     return (
         total,
         {
@@ -124,13 +121,11 @@ def _run_segmentation_epoch(
             targets = targets.to(device, non_blocking=True)
             with torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=mixed_precision):
                 output = model(images)
-                loss, components, resized_targets = compute_segmentation_loss(
+                loss, components, _ = compute_segmentation_loss(
                     output,
-                    images,
                     targets,
                     config.train.lambda_cls,
                     config.train.lambda_vq,
-                    config.train.lambda_rec,
                     config.train.label_smoothing,
                     config.data.segmentation_ignore_index,
                 )
@@ -159,9 +154,7 @@ def _run_segmentation_epoch(
             valid_pixel_count += int(valid.sum().item())
             if valid.any():
                 encoded = (
-                    (targets[valid] * config.model.num_classes + predictions[valid])
-                    .detach()
-                    .cpu()
+                    (targets[valid] * config.model.num_classes + predictions[valid]).detach().cpu()
                 )
                 confusion += torch.bincount(
                     encoded,

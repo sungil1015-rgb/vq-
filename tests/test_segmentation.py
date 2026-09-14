@@ -51,11 +51,9 @@ def test_vq_segmentation_paths_preserve_their_intended_supervision_scale(
     output = model(images)
     loss, components, supervision = compute_segmentation_loss(
         output,
-        images,
         targets,
         lambda_cls=1.0,
         lambda_vq=1.0,
-        lambda_rec=0.0,
         label_smoothing=0.0,
         ignore_index=255,
     )
@@ -70,9 +68,7 @@ def test_vq_segmentation_paths_preserve_their_intended_supervision_scale(
 
 
 def test_full_resolution_metrics_interpolate_logits_before_argmax() -> None:
-    logits = torch.tensor(
-        [[[[2.0, 0.0], [0.0, 2.0]], [[0.0, 2.0], [2.0, 0.0]]]]
-    )
+    logits = torch.tensor([[[[2.0, 0.0], [0.0, 2.0]], [[0.0, 2.0], [2.0, 0.0]]]])
 
     metric_logits = _upsample_logits_for_metrics(logits, (4, 4))
     expected = torch.nn.functional.interpolate(
@@ -84,6 +80,7 @@ def test_full_resolution_metrics_interpolate_logits_before_argmax() -> None:
 
     assert torch.equal(metric_logits, expected)
     assert tuple(metric_logits.argmax(dim=1).shape) == (1, 4, 4)
+
 
 def test_segmentation_epoch_accumulates_processed_batches() -> None:
     config = ExperimentConfig(
@@ -130,16 +127,18 @@ def test_ade20k_dataset_maps_labels_and_pairs_spatial_transforms(tmp_path: Path)
             root=str(tmp_path),
             image_shape=[2, 4],
             random_horizontal_flip=False,
+            horizontal_flip_probability=1.0,
             normalization_mean=[0.485, 0.456, 0.406],
             normalization_std=[0.229, 0.224, 0.225],
         ),
         split="training",
-        train=False,
+        train=True,
     )
     image, target = dataset[0]
 
     assert tuple(image.shape) == (3, 2, 4)
     assert target.tolist() == [[255, 0, 149, 255], [0, 149, 255, 255]]
+
 
 @pytest.mark.parametrize(
     ("normalization", "activation", "expected_batch_norm", "expected_relu"),

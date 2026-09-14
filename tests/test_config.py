@@ -415,6 +415,7 @@ def test_vq_baseline_explicitly_declares_all_hyperparameters() -> None:
     assert set(raw["data"]) == {field.name for field in fields(DataConfig)}
     assert {field.name for field in fields(TrainConfig)} - set(raw["train"]) == {"resume_from"}
 
+
 @pytest.mark.parametrize(
     ("name", "learning_rate", "lambda_vq"),
     [
@@ -440,3 +441,26 @@ def test_conservative_optuna_200_epoch_followup_configs(
     assert config.model.encoder_channels == 384
     assert config.model.latent_dim == 64
     assert config.model.codebook_size == 128
+
+
+@pytest.mark.parametrize(
+    ("reconstruction", "lambda_rec"),
+    [(True, 0.0), (False, 0.1)],
+)
+def test_segmentation_rejects_unsupported_reconstruction(
+    reconstruction: bool,
+    lambda_rec: float,
+) -> None:
+    config = ExperimentConfig(
+        model=ModelConfig(
+            task="segmentation_direct",
+            variant="vq",
+            num_classes=150,
+            reconstruction=reconstruction,
+        ),
+        data=DataConfig(dataset="ade20k"),
+        train=TrainConfig(lambda_rec=lambda_rec),
+    )
+
+    with pytest.raises(ValueError, match="Segmentation does not support reconstruction"):
+        config.validate()

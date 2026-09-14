@@ -319,6 +319,9 @@ def _run_epoch(
                 quantization_error_total += output.codebook_metrics["quantization_error"].item()
                 quantized_batches += 1
 
+    if sample_count == 0:
+        raise RuntimeError("Classification loader produced no batches")
+
     metrics = {
         "loss": total_loss / sample_count,
         "accuracy": correct / sample_count,

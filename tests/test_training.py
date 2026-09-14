@@ -126,6 +126,7 @@ def test_train_writes_best_and_last_checkpoints(
     assert last_checkpoint["epoch"] == 2
     assert last_checkpoint["scheduler"] is not None
 
+
 def test_tracked_train_creates_timestamped_source_snapshot(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -171,10 +172,7 @@ def test_explicit_run_group_keeps_parallel_runs_together(tmp_path: Path) -> None
     )
 
     assert resolve_output_dir(config) == (
-        tmp_path
-        / "0911_180000_codebook_size_ablation"
-        / "vq_bn_k_256"
-        / "seed_3"
+        tmp_path / "0911_180000_codebook_size_ablation" / "vq_bn_k_256" / "seed_3"
     )
 
 
@@ -233,3 +231,25 @@ def test_build_optimizer_uses_adamw_config() -> None:
     assert group["betas"] == pytest.approx((0.8, 0.88))
     assert group["eps"] == pytest.approx(1e-7)
     assert group["amsgrad"] is True
+
+
+def test_classification_epoch_rejects_empty_loader() -> None:
+    model = SpatialVocabularyModel(ModelConfig(variant="continuous"))
+    loader = DataLoader(
+        TensorDataset(
+            torch.empty(0, 3, 32, 32),
+            torch.empty(0, dtype=torch.long),
+        ),
+        batch_size=2,
+    )
+
+    with pytest.raises(RuntimeError, match="Classification loader produced no batches"):
+        training._run_epoch(
+            model,
+            loader,
+            torch.device("cpu"),
+            lambda_vq=0.0,
+            lambda_rec=0.0,
+            optimizer=None,
+            codebook_size=128,
+        )
